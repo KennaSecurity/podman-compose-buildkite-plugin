@@ -1,22 +1,12 @@
 #!/bin/bash
 
 compose_cleanup() {
-  # Send them a friendly kill
-  run_podman_compose kill || true
-
-  # `compose down` doesn't support force removing images
-  if [[ "$(plugin_read_config LEAVE_VOLUMES 'false')" == "false" ]]; then
-    run_podman_compose rm --force -v || true
-  else
-    run_podman_compose rm --force || true
-  fi
-
   # Stop and remove all the linked services and network
-  if [[ "$(plugin_read_config LEAVE_VOLUMES 'false')" == "false" ]]; then
-    run_podman_compose down --volumes || true
-  else
-    run_podman_compose down || true
-  fi
+  # - Podman Compose only supports the `down` command, so we can't try
+  #   using `kill` or `rm` here
+  # - Docker Compose has a --volumes option, for removing all volumes when
+  #   shutting down, but this is currently missing from Podman Compose
+  run_podman_compose down || true
 }
 
 # Checks for failed containers and writes logs for them the the provided dir
