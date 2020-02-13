@@ -1,0 +1,6 @@
+version: '2'
+services:
+  tests:
+    image: docker.io/buildkite/plugin-tester
+    volumes:
+      - ".:/plugin"
