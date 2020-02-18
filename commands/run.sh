@@ -164,24 +164,14 @@ elif [[ ! -f "$override_file" ]]; then
   # Ideally we'd do a pull with a retry first here, but we need the conditional pull behavior here
   # for when an image and a build is defined in the docker-compose.yml file, otherwise we try and
   # pull an image that doesn't exist
-  run_podman_compose build --pull "$run_service"
+  run_podman_compose build --pull
 
   # Sometimes podman-compose pull leaves unfinished ansi codes
   echo
 fi
 
-# Start up service dependencies in a different header to keep the main run with less noise
-if [[ "$(plugin_read_config DEPENDENCIES "true")" == "true" ]] ; then
-  echo "~~~ :podman: Starting dependencies"
-  if [[ ${#up_params[@]} -gt 0 ]] ; then
-    run_podman_compose "${up_params[@]}" up -d --scale "${run_service}=0" "${run_service}"
-  else
-    run_podman_compose up -d --scale "${run_service}=0" "${run_service}"
-  fi
-
-  # Sometimes podman-compose leaves unfinished ansi codes
-  echo
-fi
+# If we could, here we would start up service dependencies in a different header to keep the main run with
+# less noise, but `podman compose up` isn't currently supported for specific services
 
 shell=()
 shell_disabled=1
