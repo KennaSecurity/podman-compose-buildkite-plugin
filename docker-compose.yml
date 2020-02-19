@@ -3,4 +3,4 @@ services:
   tests:
     image: docker.io/buildkite/plugin-tester
     volumes:
-      - ".:/plugin"
+      - ".:/plugin:z"
