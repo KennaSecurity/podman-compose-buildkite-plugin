@@ -29,6 +29,6 @@ load '../lib/run'
   assert_success
   assert_output --partial "built myservice"
   assert_output --partial "ran myservice"
-  unstub docker-compose
+  unstub podman-compose
   unstub buildkite-agent
 }
