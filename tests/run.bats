@@ -22,7 +22,7 @@ load '../lib/run'
     "-f docker-compose.yml -p buildkite1111 run --name buildkite1111_myservice_build_1 --rm myservice /bin/sh -e -c 'echo hello world' : echo ran myservice"
 
   stub buildkite-agent \
-    "meta-data exists docker-compose-plugin-built-image-tag-myservice : exit 1"
+    "meta-data exists podman-compose-plugin-built-image-tag-myservice : exit 1"
 
   run $PWD/hooks/command
 
