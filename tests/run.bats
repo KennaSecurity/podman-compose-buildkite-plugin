@@ -207,7 +207,7 @@ cmd3"
 
   stub buildkite-agent \
     "meta-data exists podman-compose-plugin-built-image-tag-myservice : exit 0" \
-    "meta-data get docker-compose-plugin-built-image-tag-myservice : echo myimage"
+    "meta-data get podman-compose-plugin-built-image-tag-myservice : echo myimage"
 
   run $PWD/hooks/command
 
