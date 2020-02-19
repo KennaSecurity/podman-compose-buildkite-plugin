@@ -216,3 +216,29 @@ cmd3"
   unstub podman-compose
   unstub buildkite-agent
 }
+
+@test "Run with a prebuilt image and custom config file" {
+  export BUILDKITE_JOB_ID=1111
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_RUN=myservice
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CONFIG=tests/composefiles/docker-compose.v2.0.yml
+  export BUILDKITE_PIPELINE_SLUG=test
+  export BUILDKITE_BUILD_NUMBER=1
+  export BUILDKITE_COMMAND=pwd
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CHECK_LINKED_CONTAINERS=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CLEANUP=false
+
+  stub podman-compose \
+    "-f tests/composefiles/docker-compose.v2.0.yml -p buildkite1111 -f docker-compose.buildkite-1-override.yml pull myservice : echo pulled myservice" \
+    "-f tests/composefiles/docker-compose.v2.0.yml -p buildkite1111 -f docker-compose.buildkite-1-override.yml run --name buildkite1111_myservice_build_1 --rm myservice /bin/sh -e -c 'pwd' : echo ran myservice"
+
+  stub buildkite-agent \
+    "meta-data exists podman-compose-plugin-built-image-tag-myservice-tests/composefiles/docker-compose.v2.0.yml : exit 0" \
+    "meta-data get podman-compose-plugin-built-image-tag-myservice-tests/composefiles/docker-compose.v2.0.yml : echo myimage"
+
+  run $PWD/hooks/command
+
+  assert_success
+  assert_output --partial "ran myservice"
+  unstub podman-compose
+  unstub buildkite-agent
+}
