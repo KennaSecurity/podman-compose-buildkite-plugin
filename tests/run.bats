@@ -478,3 +478,88 @@ export BUILDKITE_JOB_ID=1111
   unstub podman-compose
   unstub buildkite-agent
 }
+
+@test "Run with default volumes, extra delimiters" {
+  # Tests introduction of extra delimiters, as would occur if
+  # EXPORT BUILDKITE_PODMAN_DEFAULT_VOLUMES="new:mount; ${BUILDKITE_PODMAN_DEFAULT_VOLUMES:-}"
+  # was used with no existing value
+  export BUILDKITE_JOB_ID=1111
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_RUN=myservice
+  export BUILDKITE_PIPELINE_SLUG=test
+  export BUILDKITE_BUILD_NUMBER=1
+  export BUILDKITE_COMMAND=pwd
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CHECK_LINKED_CONTAINERS=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CLEANUP=false
+  export BUILDKITE_PODMAN_DEFAULT_VOLUMES="buildkite:/buildkite; ./dist:/app/dist;; ;   ;"
+
+  stub podman-compose \
+    "-f docker-compose.yml -p buildkite1111 -f docker-compose.buildkite-1-override.yml pull myservice : echo pulled myservice" \
+    "-f docker-compose.yml -p buildkite1111 -f docker-compose.buildkite-1-override.yml up -d --scale myservice=0 myservice : echo started dependencies for myservice" \
+    "-f docker-compose.yml -p buildkite1111 -f docker-compose.buildkite-1-override.yml run --name buildkite1111_myservice_build_1 -v buildkite:/buildkite -v $PWD/dist:/app/dist --rm myservice /bin/sh -e -c 'pwd' : echo ran myservice with volumes"
+
+  stub buildkite-agent \
+    "meta-data exists podman-compose-plugin-built-image-tag-myservice : exit 0" \
+    "meta-data get podman-compose-plugin-built-image-tag-myservice : echo myimage"
+
+  run $PWD/hooks/command
+
+  assert_success
+  assert_output --partial "ran myservice with volumes"
+  unstub podman-compose
+  unstub buildkite-agent
+}
+
+@test "Run with default volumes" {
+  export BUILDKITE_JOB_ID=1111
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_RUN=myservice
+  export BUILDKITE_PIPELINE_SLUG=test
+  export BUILDKITE_BUILD_NUMBER=1
+  export BUILDKITE_COMMAND=pwd
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CHECK_LINKED_CONTAINERS=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CLEANUP=false
+  export BUILDKITE_PODMAN_DEFAULT_VOLUMES="buildkite:/buildkite;./dist:/app/dist"
+
+  stub podman-compose \
+    "-f docker-compose.yml -p buildkite1111 -f docker-compose.buildkite-1-override.yml pull myservice : echo pulled myservice" \
+    "-f docker-compose.yml -p buildkite1111 -f docker-compose.buildkite-1-override.yml up -d --scale myservice=0 myservice : echo started dependencies for myservice" \
+    "-f docker-compose.yml -p buildkite1111 -f docker-compose.buildkite-1-override.yml run --name buildkite1111_myservice_build_1 -v buildkite:/buildkite -v $PWD/dist:/app/dist --rm myservice /bin/sh -e -c 'pwd' : echo ran myservice with volumes"
+
+  stub buildkite-agent \
+    "meta-data exists podman-compose-plugin-built-image-tag-myservice : exit 0" \
+    "meta-data get podman-compose-plugin-built-image-tag-myservice : echo myimage"
+
+  run $PWD/hooks/command
+
+  assert_success
+  assert_output --partial "ran myservice with volumes"
+  unstub podman-compose
+  unstub buildkite-agent
+}
+
+@test "Run with multiple config files" {
+  export BUILDKITE_JOB_ID=1111
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_RUN=myservice
+  export BUILDKITE_PIPELINE_SLUG=test
+  export BUILDKITE_BUILD_NUMBER=1
+  export BUILDKITE_COMMAND="echo hello world"
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CHECK_LINKED_CONTAINERS=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CLEANUP=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CONFIG_0="llamas1.yml"
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CONFIG_1="llamas2.yml"
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CONFIG_2="llamas3.yml"
+
+  stub podman-compose \
+    "-f llamas1.yml -f llamas2.yml -f llamas3.yml -p buildkite1111 build --pull myservice : echo built myservice" \
+    "-f llamas1.yml -f llamas2.yml -f llamas3.yml -p buildkite1111 run --name buildkite1111_myservice_build_1 --rm myservice /bin/sh -e -c 'echo hello world' : echo ran myservice"
+
+  stub buildkite-agent \
+    "meta-data exists podman-compose-plugin-built-image-tag-myservice-llamas1.yml-llamas2.yml-llamas3.yml : exit 1"
+
+  run $PWD/hooks/command
+
+  assert_success
+  assert_output --partial "built myservice"
+  assert_output --partial "ran myservice"
+  unstub podman-compose
+  unstub buildkite-agent
+}
