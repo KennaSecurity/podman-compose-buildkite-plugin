@@ -561,3 +561,136 @@ export BUILDKITE_JOB_ID=1111
   unstub podman-compose
   unstub buildkite-agent
 }
+
+@test "Run with a failure should expand previous group" {
+  export BUILDKITE_JOB_ID=1111
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_RUN=myservice
+  export BUILDKITE_PIPELINE_SLUG=test
+  export BUILDKITE_BUILD_NUMBER=1
+  export BUILDKITE_COMMAND=pwd
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CHECK_LINKED_CONTAINERS=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CLEANUP=false
+
+  stub podman-compose \
+    "-f docker-compose.yml -p buildkite1111 build --pull : echo built myservice" \
+    "-f docker-compose.yml -p buildkite1111 run --name buildkite1111_myservice_build_1 --rm myservice /bin/sh -e -c 'pwd' : exit 2"
+
+  stub buildkite-agent \
+    "meta-data exists podman-compose-plugin-built-image-tag-myservice : exit 1"
+
+  run $PWD/hooks/command
+
+  assert_failure
+  assert_output --partial "^^^ +++"
+  assert_output --partial "Failed to run command, exited with 2"
+  unstub podman-compose
+  unstub buildkite-agent
+}
+
+@test "Run with multiple prebuilt images and multiple pulls" {
+  export BUILDKITE_JOB_ID=1111
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_RUN=myservice1
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_PULL_0=myservice1
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_PULL_1=myservice2
+  export BUILDKITE_PIPELINE_SLUG=test
+  export BUILDKITE_BUILD_NUMBER=1
+  export BUILDKITE_COMMAND=pwd
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CHECK_LINKED_CONTAINERS=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CLEANUP=false
+
+  stub podman-compose \
+    "-f docker-compose.yml -p buildkite1111 -f docker-compose.buildkite-1-override.yml pull --parallel myservice1 myservice2 : echo pulled myservice1 and myservice2" \
+    "-f docker-compose.yml -p buildkite1111 -f docker-compose.buildkite-1-override.yml run --name buildkite1111_myservice1_build_1 --rm myservice1 /bin/sh -e -c 'pwd' : echo ran myservice1"
+
+  stub buildkite-agent \
+    "meta-data exists podman-compose-plugin-built-image-tag-myservice1 : exit 0" \
+    "meta-data get podman-compose-plugin-built-image-tag-myservice1 : echo myimage1" \
+    "meta-data exists podman-compose-plugin-built-image-tag-myservice2 : exit 0" \
+    "meta-data get podman-compose-plugin-built-image-tag-myservice2 : echo myimage2"
+
+  run $PWD/hooks/command
+
+  assert_success
+  assert_output --partial "pulled myservice1 and myservice2"
+  assert_output --partial "ran myservice1"
+  unstub podman-compose
+  unstub buildkite-agent
+}
+
+@test "Run without a prebuilt image and a custom user" {
+  export BUILDKITE_JOB_ID=1111
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_RUN=myservice
+  export BUILDKITE_PIPELINE_SLUG=test
+  export BUILDKITE_BUILD_NUMBER=1
+  export BUILDKITE_COMMAND="sh -c 'whoami'"
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CHECK_LINKED_CONTAINERS=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CLEANUP=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_USER="1000"
+
+  stub podman-compose \
+    "-f docker-compose.yml -p buildkite1111 build --pull : echo built myservice" \
+    "-f docker-compose.yml -p buildkite1111 run --name buildkite1111_myservice_build_1 --user=1000 myservice /bin/sh -e -c 'sh -c \'whoami\'' : echo ran myservice"
+
+  stub buildkite-agent \
+    "meta-data exists podman-compose-plugin-built-image-tag-myservice : exit 1"
+
+  run $PWD/hooks/command
+
+  assert_success
+  assert_output --partial "built myservice"
+  assert_output --partial "ran myservice"
+  unstub podman-compose
+  unstub buildkite-agent
+}
+
+@test "Run without a prebuilt image and a custom user and group" {
+  export BUILDKITE_JOB_ID=1111
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_RUN=myservice
+  export BUILDKITE_PIPELINE_SLUG=test
+  export BUILDKITE_BUILD_NUMBER=1
+  export BUILDKITE_COMMAND="sh -c 'whoami'"
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CHECK_LINKED_CONTAINERS=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CLEANUP=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_USER="1000"
+
+  stub podman-compose \
+    "-f docker-compose.yml -p buildkite1111 build --pull : echo built myservice" \
+    "-f docker-compose.yml -p buildkite1111 run --name buildkite1111_myservice_build_1 --user=1000:1000 myservice /bin/sh -e -c 'sh -c \'whoami\'' : echo ran myservice"
+
+  stub buildkite-agent \
+    "meta-data exists podman-compose-plugin-built-image-tag-myservice : exit 1"
+
+  run $PWD/hooks/command
+
+  assert_success
+  assert_output --partial "built myservice"
+  assert_output --partial "ran myservice"
+  unstub podman-compose
+  unstub buildkite-agent
+}
+
+@test "Run without --rm" {
+  export BUILDKITE_JOB_ID=1111
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_RUN=myservice
+  export BUILDKITE_PIPELINE_SLUG=test
+  export BUILDKITE_BUILD_NUMBER=1
+  export BUILDKITE_COMMAND=pwd
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CHECK_LINKED_CONTAINERS=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CLEANUP=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_RM=false
+
+  stub podman-compose \
+    "-f docker-compose.yml -p buildkite1111 -f docker-compose.buildkite-1-override.yml pull myservice : echo pulled myservice" \
+    "-f docker-compose.yml -p buildkite1111 -f docker-compose.buildkite-1-override.yml run --name buildkite1111_myservice_build_1 myservice /bin/sh -e -c 'pwd' : echo ran myservice without tty"
+
+  stub buildkite-agent \
+    "meta-data exists podman-compose-plugin-built-image-tag-myservice : echo myimage" \
+    "meta-data get podman-compose-plugin-built-image-tag-myservice : echo myimage"
+
+  run $PWD/hooks/command
+
+  assert_success
+  assert_output --partial "ran myservice without tty"
+  unstub podman-compose
+  unstub buildkite-agent
+}
