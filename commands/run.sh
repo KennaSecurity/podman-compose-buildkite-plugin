@@ -77,7 +77,7 @@ if [[ ${#pull_services[@]} -gt 0 ]] ; then
 fi
 
 # We set a predictable container name so we can find it and inspect it later on
-run_params+=("run" "--name" "$container_name")
+run_params+=("run" "-d" "--name" "$container_name")
 
 # append env vars provided in ENV or ENVIRONMENT, these are newline delimited
 while IFS=$'\n' read -r env ; do
