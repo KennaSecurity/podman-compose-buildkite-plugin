@@ -547,7 +547,7 @@ export BUILDKITE_JOB_ID=1111
   export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CONFIG_2="llamas3.yml"
 
   stub podman-compose \
-    "-f llamas1.yml -f llamas2.yml -f llamas3.yml -p buildkite1111 build --pull myservice : echo built myservice" \
+    "-f llamas1.yml -f llamas2.yml -f llamas3.yml -p buildkite1111 build --pull : echo built myservice" \
     "-f llamas1.yml -f llamas2.yml -f llamas3.yml -p buildkite1111 run --name buildkite1111_myservice_build_1 --rm myservice /bin/sh -e -c 'echo hello world' : echo ran myservice"
 
   stub buildkite-agent \
