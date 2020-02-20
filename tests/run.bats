@@ -399,3 +399,82 @@ export BUILDKITE_JOB_ID=1111
   unstub podman-compose
   unstub buildkite-agent
 }
+
+@test "Run with use aliases" {
+  export BUILDKITE_JOB_ID=1111
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_RUN=myservice
+  export BUILDKITE_PIPELINE_SLUG=test
+  export BUILDKITE_BUILD_NUMBER=1
+  export BUILDKITE_COMMAND=pwd
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CHECK_LINKED_CONTAINERS=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CLEANUP=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_USE_ALIASES=true
+
+  stub podman-compose \
+    "-f docker-compose.yml -p buildkite1111 -f docker-compose.buildkite-1-override.yml pull myservice : echo pulled myservice" \
+    "-f docker-compose.yml -p buildkite1111 -f docker-compose.buildkite-1-override.yml run --name buildkite1111_myservice_build_1 --use-aliases --rm myservice /bin/sh -e -c 'pwd' : echo ran myservice with use aliases output"
+
+  stub buildkite-agent \
+    "meta-data exists podman-compose-plugin-built-image-tag-myservice : exit 0" \
+    "meta-data get podman-compose-plugin-built-image-tag-myservice : echo myimage"
+
+  run $PWD/hooks/command
+
+  assert_success
+  assert_output --partial "ran myservice with use aliases output"
+  unstub podman-compose
+  unstub buildkite-agent
+}
+
+@test "Run with a volumes option" {
+  export BUILDKITE_JOB_ID=1111
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_RUN=myservice
+  export BUILDKITE_PIPELINE_SLUG=test
+  export BUILDKITE_BUILD_NUMBER=1
+  export BUILDKITE_COMMAND=pwd
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CHECK_LINKED_CONTAINERS=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CLEANUP=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_VOLUMES_0="./dist:/app/dist"
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_VOLUMES_1="./pkg:/app/pkg"
+
+  stub podman-compose \
+    "-f docker-compose.yml -p buildkite1111 -f docker-compose.buildkite-1-override.yml pull myservice : echo pulled myservice" \
+    "-f docker-compose.yml -p buildkite1111 -f docker-compose.buildkite-1-override.yml run --name buildkite1111_myservice_build_1 -v $PWD/dist:/app/dist -v $PWD/pkg:/app/pkg --rm myservice /bin/sh -e -c 'pwd' : echo ran myservice with volumes"
+
+  stub buildkite-agent \
+    "meta-data exists podman-compose-plugin-built-image-tag-myservice : exit 0" \
+    "meta-data get podman-compose-plugin-built-image-tag-myservice : echo myimage"
+
+  run $PWD/hooks/command
+
+  assert_success
+  assert_output --partial "ran myservice with volumes"
+  unstub podman-compose
+  unstub buildkite-agent
+}
+
+@test "Run with an external volume" {
+  export BUILDKITE_JOB_ID=1111
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_RUN=myservice
+  export BUILDKITE_PIPELINE_SLUG=test
+  export BUILDKITE_BUILD_NUMBER=1
+  export BUILDKITE_COMMAND=pwd
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CHECK_LINKED_CONTAINERS=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_CLEANUP=false
+  export BUILDKITE_PLUGIN_PODMAN_COMPOSE_VOLUMES="buildkite:/buildkite"
+
+  stub podman-compose \
+    "-f docker-compose.yml -p buildkite1111 -f docker-compose.buildkite-1-override.yml pull myservice : echo pulled myservice" \
+    "-f docker-compose.yml -p buildkite1111 -f docker-compose.buildkite-1-override.yml run --name buildkite1111_myservice_build_1 -v buildkite:/buildkite --rm myservice /bin/sh -e -c 'pwd' : echo ran myservice with volumes"
+
+  stub buildkite-agent \
+    "meta-data exists podman-compose-plugin-built-image-tag-myservice : exit 0" \
+    "meta-data get podman-compose-plugin-built-image-tag-myservice : echo myimage"
+
+  run $PWD/hooks/command
+
+  assert_success
+  assert_output --partial "ran myservice with volumes"
+  unstub podman-compose
+  unstub buildkite-agent
+}
