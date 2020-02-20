@@ -689,7 +689,7 @@ export BUILDKITE_JOB_ID=1111
 
   run $PWD/hooks/command
 
-  assert_success
+  assert_failure
   assert_output --partial "ran myservice without tty"
   unstub podman-compose
   unstub buildkite-agent
