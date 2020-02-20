@@ -1,8 +1,13 @@
 steps:
-  - label: ":bash: Tests"
+  # - label: ":bash: Tests"
+  #   plugins:
+  #     kennasecurity/podman-compose#${BUILDKITE_COMMIT}:
+  #       run: tests
+  - label: ":bash: Tests (Podman plugin)"
+    command: "bats tests/"
     plugins:
-      kennasecurity/podman-compose#${BUILDKITE_COMMIT}:
-        run: tests
+      kennasecurity/podman:
+        image: docker.io/buildkite/plugin-tester
 
   # - wait
   # - label: run, with links that fail
