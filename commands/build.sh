@@ -85,11 +85,11 @@ while read -r arg ; do
 done <<< "$(plugin_read_list ARGS)"
 
 echo "+++ :podman: Building services ${services[*]}"
-run_podman_compose -f "$override_file" build "${build_params[@]}" "${services[@]}"
+run_podman_compose -f "$override_file" build "${build_params[@]}"
 
 if [[ -n "$image_repository" ]] ; then
   echo "~~~ :podman: Pushing built images to $image_repository"
-  retry "$push_retries" run_podman_compose -f "$override_file" push "${services[@]}"
+  retry "$push_retries" run_podman_compose -f "$override_file" push
 
   # iterate over build images
   while [[ ${#build_images[@]} -gt 0 ]] ; do
