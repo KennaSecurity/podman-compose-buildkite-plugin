@@ -170,8 +170,7 @@ elif [[ ! -f "$override_file" ]]; then
   echo
 fi
 
-# If we could, here we would start up service dependencies in a different header to keep the main run with
-# less noise, but `podman compose up` isn't currently supported for specific services
+run_podman_compose up
 
 shell=()
 shell_disabled=1
